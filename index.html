@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Smart City Citizen Dashboard — Live weather, currency exchange, citizen profiles, and city facts powered by real-time APIs with an AI chatbot assistant." />
+  <title>Smart City Citizen Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <!-- Ambient background blobs -->
+  <div class="ambient-bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <!-- Header -->
+  <header id="app-header">
+    <div class="header-content">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Smart City Dashboard</h1>
+          <p class="header-subtitle">Real-time citizen intelligence</p>
+        </div>
+      </div>
+      <div class="header-meta">
+        <span id="header-clock" class="header-clock"></span>
+        <span class="status-badge" id="status-badge">
+          <span class="status-dot"></span>
+          <span>Live</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Dashboard -->
+  <main id="dashboard">
+    <!-- Weather Card -->
+    <div class="card card-weather" id="card-weather">
+      <div class="card-header">
+        <div class="card-icon weather-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </div>
+        <h2 class="card-title">Live Weather</h2>
+        <button class="refresh-btn" id="refresh-weather" aria-label="Refresh weather data">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/>
+            <polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+        </button>
+      </div>
+      <div class="card-body" id="weather-body">
+        <div class="card-loading">
+          <div class="spinner"></div>
+          <span>Fetching weather…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Currency Card -->
+    <div class="card card-currency" id="card-currency">
+      <div class="card-header">
+        <div class="card-icon currency-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+          </svg>
+        </div>
+        <h2 class="card-title">Currency Exchange</h2>
+        <button class="refresh-btn" id="refresh-currency" aria-label="Refresh currency data">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/>
+            <polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+        </button>
+      </div>
+      <div class="card-body" id="currency-body">
+        <div class="card-loading">
+          <div class="spinner"></div>
+          <span>Fetching rates…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Citizen Profile Card -->
+    <div class="card card-citizen" id="card-citizen">
+      <div class="card-header">
+        <div class="card-icon citizen-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <h2 class="card-title">Citizen Profile</h2>
+        <button class="refresh-btn" id="refresh-citizen" aria-label="Refresh citizen data">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/>
+            <polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+        </button>
+      </div>
+      <div class="card-body" id="citizen-body">
+        <div class="card-loading">
+          <div class="spinner"></div>
+          <span>Loading profile…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- City Fact Card -->
+    <div class="card card-fact" id="card-fact">
+      <div class="card-header">
+        <div class="card-icon fact-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+        </div>
+        <h2 class="card-title">City Fact of the Day</h2>
+        <button class="refresh-btn" id="refresh-fact" aria-label="Refresh city fact">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/>
+            <polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+        </button>
+      </div>
+      <div class="card-body" id="fact-body">
+        <div class="card-loading">
+          <div class="spinner"></div>
+          <span>Loading fact…</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Chatbot FAB -->
+  <button class="chatbot-fab" id="chatbot-fab" aria-label="Open AI Assistant">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+    </svg>
+    <span class="fab-pulse"></span>
+  </button>
+
+  <!-- Chatbot Window -->
+  <div class="chatbot-window" id="chatbot-window">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <div class="chat-avatar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a4 4 0 014 4v2H8V6a4 4 0 014-4z"/>
+            <rect x="4" y="8" width="16" height="12" rx="2"/>
+            <circle cx="9" cy="14" r="1.5" fill="currentColor"/>
+            <circle cx="15" cy="14" r="1.5" fill="currentColor"/>
+          </svg>
+        </div>
+        <div>
+          <span class="chat-title">City AI Assistant</span>
+          <span class="chat-status">Powered by live data</span>
+        </div>
+      </div>
+      <button class="chat-close-btn" id="chat-close" aria-label="Close chat">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-msg bot-msg">
+        <div class="msg-bubble">
+          👋 Hello! I'm your Smart City assistant. Ask me anything about the live dashboard data — weather, currency, citizen info, or today's fact!
+        </div>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" class="chat-input" id="chat-input" placeholder="Ask about dashboard data…" autocomplete="off" />
+      <button class="chat-send-btn" id="chat-send" aria-label="Send message">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
