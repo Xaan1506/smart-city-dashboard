@@ -234,8 +234,7 @@ async function handleSend() {
     addMessage(response);
   } catch (err) {
     removeTyping();
-    console.error(`LLM Error: ${err.message}. Smoothly falling back to local mode.`);
-    // Fallback to local
+    addMessage(`⚠️ Error: ${err.message}. Using local mode instead.`);
     const fallback = generateLocalResponse(message);
     addMessage(fallback);
   }

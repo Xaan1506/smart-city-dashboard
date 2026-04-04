@@ -81,19 +81,9 @@ async function fetchWeather() {
 
   try {
     const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=18.52&longitude=73.86&current_weather=true');
-    
-    let cw;
-    if (!res.ok) {
-      console.warn(`Weather API returning ${res.status}. Falling back to default mock data to prevent UI layout breakage.`);
-      cw = {
-        temperature: 32.4,
-        windspeed: 14.5,
-        weathercode: 2, // Partly cloudy
-      };
-    } else {
-      const data = await res.json();
-      cw = data.current_weather;
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const cw = data.current_weather;
 
     window.weatherData = {
       temperature: cw.temperature,
@@ -150,15 +140,9 @@ async function fetchCurrency() {
 
   try {
     const res = await fetch('https://open.er-api.com/v6/latest/USD');
-    
-    let rates;
-    if (!res.ok) {
-      console.warn(`Currency API returning ${res.status}. Falling back to mock data.`);
-      rates = { INR: 83.45, EUR: 0.92, GBP: 0.78 };
-    } else {
-      const data = await res.json();
-      rates = data.rates;
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const rates = data.rates;
 
     // Calculate how many INR a foreign currency is worth
     const usdToInr = (rates.INR).toFixed(2);
@@ -210,25 +194,15 @@ async function fetchCitizen() {
   spinButton(refreshCitizenBtn);
 
   try {
-    const randomId = Math.floor(Math.random() * 100) + 1;
-    const res = await fetch(`https://dummyjson.com/users/${randomId}`);
-    
-    let user;
-    if (!res.ok) {
-      console.warn(`Citizen API returning ${res.status}. Falling back to mock data.`);
-      user = {
-        firstName: "Tanja", lastName: "Kleber",
-        address: { city: "Berlin" },
-        email: "tanja.kleber@example.com"
-      };
-    } else {
-      user = await res.json();
-    }
+    const res = await fetch('https://randomuser.me/api/');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const user = data.results[0];
 
-    const fullName = `${user.firstName} ${user.lastName}`;
-    const city = user.address.city;
+    const fullName = `${user.name.first} ${user.name.last}`;
+    const city = user.location.city;
     const email = user.email;
-    const picture = `https://i.pravatar.cc/150?u=${randomId}`;
+    const picture = user.picture.large;
 
     window.citizenData = {
       name: fullName,
@@ -267,28 +241,19 @@ async function fetchFact() {
 
   try {
     const res = await fetch('https://uselessfacts.jsph.pl/api/v2/facts/random?language=en');
-    
-    let factDataResp;
-    if (!res.ok) {
-      console.warn(`Fact API returning ${res.status}. Falling back to mock data.`);
-      factDataResp = {
-        text: "The number \"four\" is considered unlucky in Japan because it is pronounced the same as \"death\".",
-        source: "Cultural Facts"
-      };
-    } else {
-      factDataResp = await res.json();
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
 
     window.factData = {
-      text: factDataResp.text,
-      source: factDataResp.source || 'Unknown',
+      text: data.text,
+      source: data.source || 'Unknown',
     };
 
     factBody.innerHTML = `
       <div class="fact-display">
         <div class="fact-quote">
-          <p class="fact-text">${factDataResp.text}</p>
-          <p class="fact-source">Source: ${factDataResp.source || 'Unknown'}</p>
+          <p class="fact-text">${data.text}</p>
+          <p class="fact-source">Source: ${data.source || 'Unknown'}</p>
         </div>
       </div>
     `;
