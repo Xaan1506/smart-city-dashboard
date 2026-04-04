@@ -94,7 +94,7 @@ async function callOpenRouter(messages) {
 
 // ===== HUGGING FACE API CALL =====
 async function callHuggingFace(messages) {
-  const res = await fetch('https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.2/v1/chat/completions', {
+  const res = await fetch('https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.3/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
