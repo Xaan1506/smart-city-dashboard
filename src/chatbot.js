@@ -17,9 +17,10 @@ function buildLiveContext() {
   const fd = window.factData;
 
   const liveContext = `
-You are a helpful Smart City assistant.
-
-Answer ONLY using the data below.
+You are a smart city assistant.
+Answer directly and briefly using only the dashboard data.
+Do not add extra details, explanations, or suggestions.
+If the question is unrelated, say: "I only have access to the dashboard data."
 
 WEATHER:
 Temperature: ${wd ? wd.temperature + '°C' : 'Not loaded'}
@@ -38,35 +39,53 @@ Email: ${cz ? cz.email : 'Not loaded'}
 
 FACT:
 ${fd ? fd.text : 'Not loaded'}
-
-If the question is unrelated, say:
-"I only have access to the dashboard data."
 `;
 
   return liveContext;
+}
+
+function containsAny(text, keywords) {
+  const normalized = text.trim().toLowerCase();
+  return keywords.some((keyword) => normalized.includes(keyword));
+}
+
+function isGreeting(text) {
+  const normalized = text.trim().toLowerCase();
+  return /\b(hi+|hello|hey|hiya|hey there|hello there|good morning|good afternoon|good evening)\b/.test(normalized);
 }
 
 // ===== SEND TO LLM (OpenRouter or Hugging Face) =====
 async function sendToLLM(userQuestion) {
   const liveContext = buildLiveContext();
 
+  if (isGreeting(userQuestion)) {
+    const name = window.citizenData && window.citizenData.name ? window.citizenData.name : null;
+    const hello = name ? `Hello ${name}.` : 'Hello.';
+    return `${hello} Ask about weather, currency, citizen profile, or fact.`;
+  }
+
+  const localAnswer = generateLocalResponse(userQuestion);
+  if (localAnswer !== "🤔 I only have access to the dashboard data. Try asking about the **weather**, **currency**, **citizen profile**, or **city fact**!") {
+    return localAnswer;
+  }
+
   const messages = [
     { role: 'system', content: liveContext },
     { role: 'user', content: userQuestion },
   ];
 
-  // Try OpenRouter first
-  if (OPENROUTER_API_KEY) {
-    return await callOpenRouter(messages);
-  }
-
-  // Fallback to Hugging Face
+  // Prefer Hugging Face if the token is available
   if (HF_TOKEN) {
     return await callHuggingFace(messages);
   }
 
-  // No API key — use smart local fallback
-  return generateLocalResponse(userQuestion);
+  // Fallback to OpenRouter if no Hugging Face token
+  if (OPENROUTER_API_KEY) {
+    return await callOpenRouter(messages);
+  }
+
+  // No API key — use local fallback answer
+  return localAnswer;
 }
 
 // ===== OPENROUTER API CALL =====
@@ -94,23 +113,23 @@ async function callOpenRouter(messages) {
 
 // ===== HUGGING FACE API CALL =====
 async function callHuggingFace(messages) {
-  const res = await fetch('https://router.huggingface.co/hf-inference/models/meta-llama/Meta-Llama-3-8B-Instruct/v1/chat/completions', {
+  const res = await fetch('https://router.huggingface.co/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${HF_TOKEN}`,
     },
     body: JSON.stringify({
-      model: 'meta-llama/Meta-Llama-3-8B-Instruct',
+      model: 'openai/gpt-oss-120b:fastest',
       messages: messages,
       max_tokens: 300,
-      temperature: 0.7,
+      temperature: 0.0,
     }),
   });
 
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.error || `HuggingFace API error: ${res.status}`);
+    throw new Error(errData.error || errData.detail || `HuggingFace API error: ${res.status}`);
   }
   const data = await res.json();
   return data.choices[0].message.content.trim();
@@ -124,53 +143,78 @@ function generateLocalResponse(question) {
   const cz = window.citizenData;
   const fd = window.factData;
 
-  // Weather queries
-  if (q.includes('weather') || q.includes('temperature') || q.includes('temp') || q.includes('hot') || q.includes('cold') || q.includes('wind')) {
-    if (!wd) return "Weather data hasn't loaded yet. Please wait or refresh the weather card.";
-    let response = `🌡️ The current temperature is **${wd.temperature}°C** with wind speeds of **${wd.windspeed} km/h** (weather code: ${wd.weathercode}).`;
-    if (wd.temperature > 35) response += ' It\'s quite hot outside!';
-    else if (wd.temperature > 25) response += ' It\'s warm and pleasant.';
-    else if (wd.temperature > 15) response += ' The weather is mild and comfortable.';
-    else response += ' It\'s quite cool outside, consider wearing a jacket.';
-    return response;
+  const weatherKeywords = ['weather', 'temperature', 'temp', 'hot', 'cold', 'wind', 'rain', 'sunny', 'cloud'];
+  const currencyKeywords = ['currency', 'rate', 'exchange', 'usd', 'eur', 'gbp', 'inr', 'dollar', 'euro', 'pound', 'rupee', 'money'];
+  const citizenKeywords = ['citizen', 'profile', 'person', 'name', 'email', 'user'];
+  const factKeywords = ['fact', 'trivia', 'random', 'interesting', 'did you know', 'fun'];
+  const helpKeywords = ['help', 'what can you do', 'what do you know'];
+  const dashboardKeywords = ['dashboard', 'data', 'info', 'summary', 'all', 'everything', 'overview'];
+
+  const hasWeather = containsAny(q, weatherKeywords);
+  const hasCurrency = containsAny(q, currencyKeywords);
+  const hasCitizen = containsAny(q, citizenKeywords);
+  const hasFact = containsAny(q, factKeywords);
+  const hasHelp = containsAny(q, helpKeywords);
+  const hasDashboard = containsAny(q, dashboardKeywords);
+
+  const extractCurrency = (text) => {
+    if (/\b(eur|euro)\b/.test(text)) return 'EUR';
+    if (/\b(gbp|pound|pounds)\b/.test(text)) return 'GBP';
+    if (/\b(usd|dollar|dollars)\b/.test(text)) return 'USD';
+    if (/\b(inr|rupee|rupees)\b/.test(text)) return 'INR';
+    return null;
+  };
+
+  const formatCurrency = (code) => {
+    if (!cd) return "Currency data hasn't loaded yet.";
+    if (code === 'USD') return `1 USD = ₹${cd.USD}.`;
+    if (code === 'EUR') return `1 EUR = ₹${cd.EUR}.`;
+    if (code === 'GBP') return `1 GBP = ₹${cd.GBP}.`;
+    if (code === 'INR') return `1 USD = ₹${cd.USD}. 1 EUR = ₹${cd.EUR}. 1 GBP = ₹${cd.GBP}.`;
+    return `1 USD = ₹${cd.USD}. 1 EUR = ₹${cd.EUR}. 1 GBP = ₹${cd.GBP}.`;
+  };
+
+  if (hasWeather) {
+    if (!wd) return "Weather data hasn't loaded yet.";
+    return `Temperature: ${wd.temperature}°C. Wind: ${wd.windspeed} km/h. Weather code: ${wd.weathercode}.`;
   }
 
-  // Currency queries
-  if (q.includes('currency') || q.includes('rate') || q.includes('exchange') || q.includes('usd') || q.includes('eur') || q.includes('gbp') || q.includes('inr') || q.includes('dollar') || q.includes('euro') || q.includes('pound') || q.includes('rupee') || q.includes('money')) {
-    if (!cd) return "Currency data hasn't loaded yet. Please wait or refresh the currency card.";
-    return `💱 Current exchange rates:\n• 1 USD = **₹${cd.USD}** 🇺🇸\n• 1 EUR = **₹${cd.EUR}** 🇪🇺\n• 1 GBP = **₹${cd.GBP}** 🇬🇧`;
+  if (hasCurrency) {
+    const requested = extractCurrency(q);
+    if (!cd) return "Currency data hasn't loaded yet.";
+    if (requested && requested !== 'INR') {
+      return formatCurrency(requested);
+    }
+    return formatCurrency('INR');
   }
 
-  // Citizen queries
-  if (q.includes('citizen') || q.includes('profile') || q.includes('person') || q.includes('name') || q.includes('who') || q.includes('email') || q.includes('user')) {
-    if (!cz) return "Citizen data hasn't loaded yet. Please wait or refresh the citizen card.";
-    return `👤 Current citizen profile:\n• **Name:** ${cz.name}\n• **City:** ${cz.city}\n• **Email:** ${cz.email}`;
+  if (hasCitizen) {
+    if (!cz) return "Citizen data hasn't loaded yet.";
+    return `Name: ${cz.name}. City: ${cz.city}. Email: ${cz.email}.`;
   }
 
-  // Fact queries
-  if (q.includes('fact') || q.includes('trivia') || q.includes('random') || q.includes('interesting') || q.includes('did you know') || q.includes('fun')) {
-    if (!fd) return "Fact data hasn't loaded yet. Please wait or refresh the fact card.";
-    return `📜 Here's today's fact:\n\n"${fd.text}"`;
+  if (hasFact) {
+    if (!fd) return "Fact data hasn't loaded yet.";
+    return `Fact: ${fd.text}`;
   }
 
-  // General dashboard queries
-  if (q.includes('dashboard') || q.includes('data') || q.includes('info') || q.includes('summary') || q.includes('all') || q.includes('everything') || q.includes('overview')) {
-    let summary = '📊 **Dashboard Summary:**\n\n';
-    if (wd) summary += `🌡️ Weather: ${wd.temperature}°C, Wind: ${wd.windspeed} km/h\n`;
-    if (cd) summary += `💱 1 USD = ₹${cd.USD} | 1 EUR = ₹${cd.EUR} | 1 GBP = ₹${cd.GBP}\n`;
-    if (cz) summary += `👤 Citizen: ${cz.name} from ${cz.city}\n`;
-    if (fd) summary += `📜 Fact: "${fd.text.substring(0, 80)}..."`;
-    return summary || "Data is still loading. Please wait a moment.";
+  if (hasHelp) {
+    return "I can answer questions about weather, currency, citizen profile, and the city fact of the day.";
   }
 
-  // Greeting
-  if (q.includes('hello') || q.includes('hi') || q.includes('hey') || q.includes('sup') || q.includes('good')) {
-    return "👋 Hello! I'm your Smart City assistant. Ask me about the **weather**, **currency rates**, **citizen profile**, or today's **fun fact**!";
+  if (hasDashboard) {
+    let summary = '';
+    if (wd) summary += `Weather: ${wd.temperature}°C, Wind: ${wd.windspeed} km/h. `;
+    if (cd) summary += `1 USD = ₹${cd.USD}. 1 EUR = ₹${cd.EUR}. 1 GBP = ₹${cd.GBP}. `;
+    if (cz) summary += `Citizen: ${cz.name} from ${cz.city}. `;
+    if (fd) summary += `Fact: ${fd.text}`;
+    return summary || "Data is still loading.";
   }
 
-  // Help
-  if (q.includes('help') || q.includes('what can you do') || q.includes('what do you know')) {
-    return "🤖 I can answer questions about the live dashboard data:\n\n• 🌡️ **Weather** — temperature, wind, conditions\n• 💱 **Currency** — INR exchange rates\n• 👤 **Citizen** — current profile info\n• 📜 **Facts** — city fact of the day\n\nJust ask away!";
+  if (isGreeting(question)) {
+    const name = cz && cz.name ? cz.name : null;
+    const hello = name ? `Hello ${name}.` : 'Hello.';
+    return `${hello} Ask about weather, currency, citizen profile, or fact.`;
   }
 
   return "🤔 I only have access to the dashboard data. Try asking about the **weather**, **currency**, **citizen profile**, or **city fact**!";
